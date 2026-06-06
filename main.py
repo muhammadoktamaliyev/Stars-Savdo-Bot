@@ -45,7 +45,6 @@ def get_reply_menu():
     btn_reviews = types.KeyboardButton("💬 Fikrlar va sharhlar")
     btn_channel = types.KeyboardButton("📢 Bizning kanal")
     
-    # Tugmalarni qatorlarga chiroyli joylashtiramiz
     markup.add(btn_prices)
     markup.add(btn_admin, btn_reviews)
     markup.add(btn_channel)
@@ -60,19 +59,16 @@ def get_admin_menu():
     markup.add(btn_stats)
     return markup
 
-# /start buyrug'i kelganda
+# /start buyrug'i kelganda (MATNLAR TOZALANDI)
 @bot.message_handler(commands=['start'])
 def start_message(message):
     USERS_DB.add(message.chat.id)
     
+    # Belgilangan ortiqcha matnlar olib tashlangan toza variant
     welcome_text = (
         "🌟 **Telegram Stars Savdo do'koniga xush kelibsiz!**\n\n"
-        "«Stars xarid qiling — oltin ichidagi Patrikdek yashang 🛍»\n\n"
-        "🤑 **Stars paketlarini Telegram'dan ancha arzon narxda oling**\n"
-        "🔥 Birinchi xaridingiz uchun maxsus chegirma amal qilmoqda!\n\n"
-        "👇 Pastdagi tugmalardan kerakli bo'limni tanlang:"
+        "🤑 **Stars paketlarini Telegram'dan ancha arzon narxda oling**"
     )
-    # Pastdagi tugmalarni ochib beradi
     bot.send_message(message.chat.id, welcome_text, reply_markup=get_reply_menu(), parse_mode="Markdown")
 
 # /admin paneli (Faqat sizga ishlaydi)
@@ -81,7 +77,7 @@ def admin_panel(message):
     if message.chat.id == ADMIN_ID:
         bot.send_message(message.chat.id, "🛠 **Xush kelibsiz Admin!**\nBotni boshqarish paneli:", reply_markup=get_admin_menu(), parse_mode="Markdown")
 
-# 🌟 SIZ BELGILAGAN PASTDAGI TUGMALAR BOSILGANDA ISHLAYDIGAN ASOSIY QISM
+# 🌟 PASTDAGI TUGMALAR BOSILGANDA ISHLAYDIGAN ASOSIY QISM
 @bot.message_handler(func=lambda message: message.text in ["⭐️ STARS narxlari", "👤 Admin bilan bog'lanish", "💬 Fikrlar va sharhlar", "📢 Bizning kanal"])
 def handle_reply_buttons(message):
     if message.text == "⭐️ STARS narxlari":
@@ -156,7 +152,7 @@ def handle_callbacks(call):
 def checkout(pre_checkout_query):
     bot.answer_pre_checkout_query(pre_checkout_query.id, ok=True)
 
-# 💰 TO'LOV MUVAFFAQIYATLI O'TGANDA SIZGA VA FOYDALANUVCHIGA XABAR YUBORISH
+# 💰 TO'LOV MUVAFFAQIYATLI O'TGANDA ISHLAYDIGAN QISM
 @bot.message_handler(content_types=['successful_payment'])
 def got_payment(message):
     payment_info = message.successful_payment
