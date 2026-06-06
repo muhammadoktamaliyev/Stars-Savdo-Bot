@@ -11,13 +11,10 @@ app = Flask(__name__)
 TOKEN = '8608266628:AAFWj6LjTVi6gFaAvEvzy7W6xLc4x8DfzC0'
 bot = telebot.TeleBot(TOKEN)
 
-# 💳 CLICK TOKENINGIZ
-PROVIDER_TOKEN = '398062629:TEST:999999999_F91D8F69C042267444B74CC0B3C747757EB0E065' 
-
 # 🛠 TELEGRAM ID RAQAMINGIZ
 ADMIN_ID = 6807375870  
 
-# Foydalanuvchilar ro'yxati va holatlar uchun vaqtinchalik baza
+# Foydalanuvchilar ro'yxati uchun vaqtinchalik baza
 USERS_DB = set()
 admin_state = {}
 
@@ -36,7 +33,7 @@ STARS_PRODUCTS = {
     "stars_1000": {"title": "1000 ⭐️ Stars", "price": 220000, "amount": 1000}
 }
 
-# 🌟 PASTDAGI TUGMALAR (Siz belgilagan klaviatura dizayni)
+# 🌟 PASTDAGI TUGMALAR (Klaviatura)
 def get_reply_menu():
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     
@@ -50,7 +47,7 @@ def get_reply_menu():
     markup.add(btn_channel)
     return markup
 
-# Admin panel menyusi (Faqat /admin yozganda inline chiqadi)
+# Admin panel menyusi
 def get_admin_menu():
     markup = types.InlineKeyboardMarkup()
     btn_send_ads = types.InlineKeyboardButton("📣 Reklama (Rassilka) yuborish", callback_data="admin_send_ads")
@@ -59,25 +56,24 @@ def get_admin_menu():
     markup.add(btn_stats)
     return markup
 
-# /start buyrug'i kelganda (MATNLAR TOZALANDI)
+# /start buyrug'i kelganda
 @bot.message_handler(commands=['start'])
 def start_message(message):
     USERS_DB.add(message.chat.id)
     
-    # Belgilangan ortiqcha matnlar olib tashlangan toza variant
     welcome_text = (
         "🌟 **Telegram Stars Savdo do'koniga xush kelibsiz!**\n\n"
         "🤑 **Stars paketlarini Telegram'dan ancha arzon narxda oling**"
     )
     bot.send_message(message.chat.id, welcome_text, reply_markup=get_reply_menu(), parse_mode="Markdown")
 
-# /admin paneli (Faqat sizga ishlaydi)
+# /admin paneli
 @bot.message_handler(commands=['admin'])
 def admin_panel(message):
     if message.chat.id == ADMIN_ID:
         bot.send_message(message.chat.id, "🛠 **Xush kelibsiz Admin!**\nBotni boshqarish paneli:", reply_markup=get_admin_menu(), parse_mode="Markdown")
 
-# 🌟 PASTDAGI TUGMALAR BOSILGANDA ISHLAYDIGAN ASOSIY QISM
+# 🌟 PASTDAGI TUGMALAR BOSILGANDA ISHLAYDIGAN QISM
 @bot.message_handler(func=lambda message: message.text in ["⭐️ STARS narxlari", "👤 Admin bilan bog'lanish", "💬 Fikrlar va sharhlar", "📢 Bizning kanal"])
 def handle_reply_buttons(message):
     if message.text == "⭐️ STARS narxlari":
@@ -87,7 +83,7 @@ def handle_reply_buttons(message):
             btn = types.InlineKeyboardButton(f"{product['title']} — {product['price']:,} so'm", callback_data=f"buy_{key}")
             buttons.append(btn)
         markup.add(*buttons)
-        bot.send_message(message.chat.id, "⭐️ **Kerakli Stars paketini tanlang va Click orqali oson to'lang:**", reply_markup=markup, parse_mode="Markdown")
+        bot.send_message(message.chat.id, "⭐️ **Kerakli Stars paketini tanlang:**", reply_markup=markup, parse_mode="Markdown")
         
     elif message.text == "👤 Admin bilan bog'lanish":
         bot.send_message(message.chat.id, "🎧 Savollar, takliflar yoki muammolar bo'yicha admin bilan bog'laning:\n👉 @muhammad_16")
@@ -113,7 +109,7 @@ def receive_ad_text(message):
             continue
     bot.send_message(message.chat.id, f"✅ Reklama yakunlandi!\n\n👥 Muvaffaqiyatli yetkazildi: {success_count} ta foydalanuvchiga.")
 
-# Inline tugmalar (Admin panel va To'lov uchun)
+# Inline tugmalar boshqaruvi (Paket tanlanganda sizga havola beradi)
 @bot.callback_query_handler(func=lambda call: True)
 def handle_callbacks(call):
     if call.data == "admin_send_ads" and call.message.chat.id == ADMIN_ID:
@@ -126,57 +122,20 @@ def handle_callbacks(call):
         bot.send_message(call.message.chat.id, stats_text)
         bot.answer_callback_query(call.id)
         
-    # Click to'lov oynasini (Invoice) yuborish
+    # Xaridor paketni tanlaganda to'g'ridan-to'g'ri sizga yo'naltirish qismi
     elif call.data.startswith("buy_"):
         product_key = call.data.split("_", 1)[1]
         product = STARS_PRODUCTS.get(product_key)
         
         if product:
-            try:
-                bot.send_invoice(
-                    chat_id=call.message.chat.id,
-                    title=product['title'],
-                    description=f"Telegram uchun {product['amount']} dona Stars paketini Click orqali xarid qilish.",
-                    provider_token=PROVIDER_TOKEN,
-                    currency='UZS',
-                    prices=[types.LabeledPrice(label=product['title'], amount=product['price'] * 100)],
-                    start_parameter='stars-payment',
-                    invoice_payload=f"payload_{product_key}"
-                )
-                bot.answer_callback_query(call.id)
-            except Exception as e:
-                bot.send_message(call.message.chat.id, "⚠️ To'lov tizimida texnik nosozlik yuz berdi. Iltimos admin bilan bog'laning.")
-
-# TO'LOVDAN OLDINGI TEKSHIRUV
-@bot.pre_checkout_query_handler(func=lambda query: True)
-def checkout(pre_checkout_query):
-    bot.answer_pre_checkout_query(pre_checkout_query.id, ok=True)
-
-# 💰 TO'LOV MUVAFFAQIYATLI O'TGANDA ISHLAYDIGAN QISM
-@bot.message_handler(content_types=['successful_payment'])
-def got_payment(message):
-    payment_info = message.successful_payment
-    payload = payment_info.invoice_payload
-    product_key = payload.split("_", 1)[1]
-    stars_amount = STARS_PRODUCTS[product_key]["amount"]
-    
-    # Xaridorga xabar
-    bot.send_message(
-        message.chat.id, 
-        f"🎉 **To'lov muvaffaqiyatli qabul qilindi!**\n\n"
-        f"🛒 Siz **{stars_amount} ⭐️ Stars** paketini sotib oldingiz.\n"
-        f"⏳ Admin tez orada Stars'ni hisobingizga o'tkazib beradi!"
-    )
-    
-    # Adminga (Sizga) xabar
-    bot.send_message(
-        ADMIN_ID, 
-        f"💰 **YANGI TO'LOV TUSHDI!**\n\n"
-        f"👤 Kim: @{message.from_user.username} (ID: `{message.from_user.id}`)\n"
-        f"⭐️ Xarid qildi: {stars_amount} Stars\n"
-        f"💵 Pul Click orqali hisobingizga o'tdi.\n\n"
-        f"👉 Unga Stars o'tkazib berishni unutmang!"
-    )
+            payment_text = (
+                f"🛒 **Siz tanladingiz:** {product['title']}\n"
+                f"💰 **Sotib olish narxi:** {product['price']:,} so'm\n\n"
+                f"🛍 Ushbu paketni sotib olish uchun hozir adminimizga yozing. Admin sizga karta raqamini beradi va pul o'tishi bilan Stars'ni tashlab beradi:\n\n"
+                f"👉 **Admin bilan bog'lanish:** @muhammad_16"
+            )
+            bot.send_message(call.message.chat.id, payment_text, parse_mode="Markdown")
+            bot.answer_callback_query(call.id)
 
 def run_bot():
     bot.infinity_polling()
